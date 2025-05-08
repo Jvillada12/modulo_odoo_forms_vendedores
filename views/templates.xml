@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista de lista de formularios de pedidos -->
+    <template id="vendor_orders_list" name="Formularios de Pedidos">
+        <t t-call="website.layout">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <h1 class="mt-4 mb-4">Mis Formularios de Pedidos</h1>
+                        <a href="/create-vendor-order" class="btn btn-primary mb-3">
+                            <i class="fa fa-plus"/> Crear Nuevo Formulario
+                        </a>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Referencia</th>
+                                        <th>Cliente</th>
+                                        <th>Fecha</th>
+                                        <th>Estado</th>
+                                        <th>Total</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="order_forms" t-as="order">
+                                        <tr>
+                                            <td><t t-esc="order.name"/></td>
+                                            <td><t t-esc="order.customer_id.name"/></td>
+                                            <td><t t-esc="order.date_order" t-options="{'widget': 'date'}"/></td>
+                                            <td>
+                                                <span t-att-class="'badge ' + (
+                                                    'badge-secondary' if order.state == 'draft' else
+                                                    'badge-info' if order.state == 'sent' else
+                                                    'badge-success' if order.state == 'confirmed' else
+                                                    'badge-primary' if order.state == 'sale' else
+                                                    'badge-danger')">
+                                                    <t t-esc="dict(order._fields['state'].selection).get(order.state)"/>
+                                                </span>
+                                            </td>
+                                            <td><t t-esc="order.total_amount" t-options="{'widget': 'monetary', 'display_currency': res_company.currency_id}"/></td>
+                                            <td>
+                                                <a t-att-href="'/vendor-order/%s/%s' % (order.id, order.access_token)" class="btn btn-sm btn-info" title="Ver">
+                                                    <i class="fa fa-eye"/>
+                                                </a>
+                                                <button t-if="order.state == 'draft'" class="btn btn-sm btn-secondary copy-url" t-att-data-url="order.url" title="Copiar enlace">
+                                                    <i class="fa fa-copy"/>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Formulario para crear nuevo pedido -->
+    <template id="create_vendor_order_form" name="Crear Formulario de Pedido">
+        <t t-call="website.layout">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-8 offset-lg-2 col-md-12">
+                        <h1 class="mt-4 mb-4">Crear Nuevo Formulario de Pedido</h1>
+                        
+                        <form action="/vendor-order/save" method="post" class="js_website_submit_form">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            
+                            <div class="form-group">
+                                <label for="partner_id" class="font-weight-bold">Cliente *</label>
+                                <select name="partner_id" class="form-control" required="required">
+                                    <option value="">Seleccionar cliente...</option>
+                                    <t t-foreach="partners" t-as="partner">
+                                        <option t-att-value="partner.id">
+                                            <t t-esc="partner.name"/>
+                                        </option>
+                                    </t>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="delivery_date" class="font-weight-bold">Fecha de Entrega</label>
+                                <input type="date" name="delivery_date" class="form-control" t-att-min="datetime.date.today()" required="required"/>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="note">Notas</label>
+                                <textarea name="note" class="form-control" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="form-group text-center">
+                                <button type="submit" class="btn btn-primary">Crear y Continuar</button>
+                                <a href="/vendor-orders" class="btn btn-secondary ml-2">Cancelar</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- Plantilla para el formulario público de pedido -->
+    <template id="vendor_order_form_public" name="Formulario de Pedido">
+        <t t-call="website.layout">
+            <div class="container vendor_order_form_public">
+                <div class="row mb-4">
+                    <div class="col-lg-8 offset-lg-2 col-md-12">
+                        <h1 class="text-center mt-4 mb-3">Formulario de Pedido</h1>
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Referencia: <t t-esc="order.name"/></span>
+                                    <span>Vendedor: <t t-esc="order.vendor_id.name"/></span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <form t-att-action="'/vendor-order/submit/%s/%s' % (order.id, order.access_token)" method="post">
+                                    <!-- Información del cliente -->
+                                    <h4 class="mb-3">Información del Cliente</h4>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="customer_name">Nombre *</label>
+                                                <input type="text" class="form-control" name="customer_name" t-att-value="order.customer_id.name" required="required"/>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="customer_email">Correo Electrónico *</label>
+                                                <input type="email" class="form-control" name="customer_email" t-att-value="order.customer_id.email" required="required"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="customer_phone">Teléfono</label>
+                                                <input type="tel" class="form-control" name="customer_phone" t-att-value="order.customer_id.phone"/>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="delivery_date">Fecha de Entrega *</label>
+                                                <input type="date" class="form-control" name="delivery_date" t-att-value="order.delivery_date" t-att-min="datetime.date.today()" required="required"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Redes sociales opcionales -->
+                                    <h4 class="mt-4 mb-3">Redes Sociales (Opcional)</h4>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="social_facebook">
+                                                    <i class="fa fa-facebook-square"/> Facebook
+                                                </label>
+                                                <input type="text" class="form-control" name="social_facebook" t-att-value="order.social_facebook"/>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="social_instagram">
+                                                    <i class="fa fa-instagram"/> Instagram
+                                                </label>
+                                                <input type="text" class="form-control" name="social_instagram" t-att-value="order.social_instagram"/>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="social_whatsapp">
+                                                    <i class="fa fa-whatsapp"/> WhatsApp
+                                                </label>
+                                                <input type="text" class="form-control" name="social_whatsapp" t-att-value="order.social_whatsapp"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Selección de productos -->
+                                    <h4 class="mt-4 mb-3">Productos</h4>
+                                    <div class="row mb-2 font-weight-bold d-none d-md-flex">
+                                        <div class="col-md-2">Imagen</div>
+                                        <div class="col-md-5">Producto</div>
+                                        <div class="col-md-2">Precio</div>
+                                        <div class="col-md-3">Cantidad</div>
+                                    </div>
+                                    
+                                    <div id="products-container">
+                                        <t t-set="currency" t-value="request.env.company.currency_id"/>
+                                        <t t-foreach="products" t-as="product">
+                                            <div class="row align-items-center mb-3 product-row" t-att-data-product-id="product.id">
+                                                <div class="col-md-2 col-4">
+                                                    <img t-att-src="'/web/image/product.product/%s/image_128' % product.id" class="img-fluid"/>
+                                                </div>
+                                                <div class="col-md-5 col-8">
+                                                    <span class="font-weight-bold"><t t-esc="product.name"/></span>
+                                                    <p class="text-muted small mb-0">Stock: <t t-esc="product.qty_available"/></p>
+                                                </div>
+                                                <div class="col-md-2 col-6 mt-2 mt-md-0">
+                                                    <span class="price-tag">
+                                                        <t t-esc="product.list_price" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                                    </span>
+                                                </div>
+                                                <div class="col-md-3 col-6 mt-2 mt-md-0">
+                                                    <div class="input-group">
+                                                        <div class="input-group-prepend">
+                                                            <button type="button" class="btn btn-secondary btn-qty" data-action="decrease">-</button>
+                                                        </div>
+                                                        <input type="number" t-att-name="'product_qty_%s' % product.id" class="form-control text-center product-qty" min="0" t-att-max="product.qty_available" value="0"/>
+                                                        <div class="input-group-append">
+                                                            <button type="button" class="btn btn-secondary btn-qty" data-action="increase">+</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </div>
+                                    
+                                    <!-- Totales -->
+                                    <div class="row mt-4">
+                                        <div class="col-12">
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between">
+                                                        <h5>Total:</h5>
+                                                        <h5 id="total-amount">
+                                                            <t t-esc="0.0" t-options="{'widget': 'monetary', 'display_currency': currency}"/>
+                                                        </h5>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Notas -->
+                                    <div class="form-group mt-4">
+                                        <label for="note">Notas adicionales</label>
+                                        <textarea name="note" class="form-control" rows="3"><t t-esc="order.note"/></textarea>
+                                    </div>
+                                    
+                                    <!-- Botones de acción -->
+                                    <div class="text-center mt-4">
+                                        <button type="submit" class="btn btn-primary btn-lg">Confirmar Pedido</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+    
+    <!-- Página de confirmación -->
+    <template id="confirmation" name="Pedido Confirmado">
+        <t t-call="website.layout">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-8 offset-lg-2 col-md-12">
+                        <div class="jumbotron text-center mt-4">
+                            <h1 class="display-4">¡Gracias!</h1>
+                            <p class="lead">Tu pedido ha sido recibido correctamente.</p>
+                            <hr class="my-4"/>
+                            <p>Referencia del pedido: <strong><t t-esc="order.name"/></strong></p>
+                            <p>Un vendedor se pondrá en contacto contigo pronto.</p>
+                            <a href="/" class="btn btn-primary mt-3">Volver al Inicio</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+    
+    <!-- Página de error 404 -->
+    <template id="404" name="Página no encontrada">
+        <t t-call="website.layout">
+            <div class="container text-center py-5">
+                <h1>Página no encontrada</h1>
+                <p class="lead">Lo sentimos, el enlace que has seguido puede ser incorrecto o ha expirado.</p>
+                <a href="/" class="btn btn-primary mt-3">Volver al Inicio</a>
+            </div>
+        </t>
+    </template>
+    
+    <!-- Página de error genérico -->
+    <template id="error" name="Error">
+        <t t-call="website.layout">
+            <div class="container text-center py-5">
+                <h1>Ha ocurrido un error</h1>
+                <p class="lead"><t t-esc="error_message"/></p>
+                <a href="javascript:history.back()" class="btn btn-primary mt-3">Volver</a>
+            </div>
+        </t>
+    </template>
+</odoo>

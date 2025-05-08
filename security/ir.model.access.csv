@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_vendor_order_form_user,vendor.order.form.user,model_vendor_order_form,sales_team.group_sale_salesman,1,1,1,1
+access_vendor_order_form_line_user,vendor.order.form.line.user,model_vendor_order_form_line,sales_team.group_sale_salesman,1,1,1,1
+access_vendor_order_form_manager,vendor.order.form.manager,model_vendor_order_form,sales_team.group_sale_manager,1,1,1,1
+access_vendor_order_form_line_manager,vendor.order.form.line.manager,model_vendor_order_form_line,sales_team.group_sale_manager,1,1,1,1
+access_vendor_order_form_public,vendor.order.form.public,model_vendor_order_form,base.group_public,1,0,0,0
+access_vendor_order_form_line_public,vendor.order.form.line.public,model_vendor_order_form_line,base.group_public,1,0,0,0
